@@ -6,6 +6,6 @@ pub fn run() {
 mod tests {
     #[test]
     fn sanity() {
-        assert_eq!(1+1, 2);
+        assert_eq!(1 + 1, 2);
     }
 }
