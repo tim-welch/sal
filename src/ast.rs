@@ -11,10 +11,13 @@ pub enum Expr {
 }
 
 fn is_eof(tokens: &Tokens, current: usize) -> bool {
-    tokens.len() > current
+    tokens.len() <= current
 }
 
 fn literal(tokens: &Tokens, current: usize) -> ExprResult {
+    if is_eof(tokens, current) {
+        return Err("Unexpected end of file".into());
+    }
     match &tokens[current] {
         Token::NumericLiteral { value } => Ok(Expr::NumericLiteral { value: value.to_string() }),
         _ => Err(format!("Unexpected token: {:?}", tokens[current]).into())
@@ -29,6 +32,13 @@ pub fn parse(tokens: &Tokens) -> ExprResult {
 #[cfg(test)]
 mod tests {
     use super::*;
+    
+    #[test]
+    fn parse_empty() {
+        let tokens: Vec<Token> = vec![ ];
+        let err = parse(&tokens).unwrap_err();
+        assert_eq!(format!("{}", err), String::from("Unexpected end of file"));
+    }
 
     #[test]
     fn parse_number() {
