@@ -7,6 +7,7 @@ pub enum TokenType {
     NumericLiteral,
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct Token {
     kind: TokenType,
     value: String,
@@ -69,9 +70,23 @@ mod tests {
     
     #[test]
     fn tokenize_numeric_literal() {
-        let tokens = tokenize("123.456").unwrap();
-        assert_eq!(tokens.len(), 1);
-        assert_eq!(tokens[0].value, "123.456");
-        assert_eq!(tokens[0].kind, TokenType::NumericLiteral);
+        struct Test {
+            source: &'static str,
+            expected: Token,
+        }
+        let tests = [
+            Test { source: "123.456", expected: Token{ kind: TokenType::NumericLiteral, value: "123.456".into()}},
+            Test { source: "1", expected: Token{ kind: TokenType::NumericLiteral, value: "1".into()}},
+            Test { source: "0", expected: Token{ kind: TokenType::NumericLiteral, value: "0".into()}},
+            Test { source: "1234567890", expected: Token{ kind: TokenType::NumericLiteral, value: "1234567890".into()}},
+            Test { source: "0.123456789", expected: Token{ kind: TokenType::NumericLiteral, value: "0.123456789".into()}},
+        ];
+        for test in tests {
+            let tokens = tokenize(test.source).unwrap();
+            assert_eq!(tokens.len(), 1);
+            assert_eq!(tokens[0], test.expected);
+            assert_eq!(tokens[0].kind, TokenType::NumericLiteral);
+
+        }
     }
 }
