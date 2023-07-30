@@ -4,7 +4,14 @@ type Source = Vec<char>;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum TokenType {
+    // Literals
     NumericLiteral,
+    
+    // Operators
+    Plus,
+    Minus,
+    Astrix,
+    Slash,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -56,6 +63,22 @@ pub fn tokenize(source: &str) -> Result<Vec<Token>, Box<dyn Error>> {
                 let token_info = number(&source, current);
                 tokens.push(token_info.token);
                 current += token_info.used;
+            }
+            '+' => {
+                tokens.push(Token {kind: TokenType::Plus, value: source[current].into()});
+                current += 1;
+            }
+            '-' => {
+                tokens.push(Token {kind: TokenType::Minus, value: source[current].into()});
+                current += 1;
+            }
+            '*' => {
+                tokens.push(Token {kind: TokenType::Astrix, value: source[current].into()});
+                current += 1;
+            }
+            '/' => {
+                tokens.push(Token {kind: TokenType::Slash, value: source[current].into()});
+                current += 1;
             }
             _ => {
                 let used = eat_whitespace(&source,current);
@@ -163,4 +186,32 @@ mod tests {
 
         }
     }
+    
+    #[test]
+    fn tokenize_operators() {
+        struct Test {
+            source: &'static str,
+            expected: Vec<Token>,
+        }
+        let tests = [
+            Test { source: "+", expected: vec![
+                Token{ kind: TokenType::Plus, value: "+".into()},
+            ]},
+            Test { source: "-", expected: vec![
+                Token{ kind: TokenType::Minus, value: "-".into()},
+            ]},
+            Test { source: "*", expected: vec![
+                Token{ kind: TokenType::Astrix, value: "*".into()},
+            ]},
+            Test { source: "/", expected: vec![
+                Token{ kind: TokenType::Slash, value: "/".into()},
+            ]},
+        ];
+        for test in tests {
+            let tokens = tokenize(test.source).unwrap();
+            assert_eq!(tokens, test.expected);
+
+        }
+    }
+    
 }
