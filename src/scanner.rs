@@ -37,6 +37,14 @@ fn number(source: &Source, current: usize) -> TokenInfo {
     TokenInfo {token: Token{kind: TokenType::NumericLiteral, value: source[current..current+used].iter().collect()}, used}
 }
 
+fn eat_whitespace(source: &Source, current: usize) -> usize {
+    let mut used: usize = 0;
+    while !is_end(source, current+used) && source[current+used].is_whitespace() {
+        used += 1;
+    }
+    used
+}
+
 pub fn tokenize(source: &str) -> Result<Vec<Token>, Box<dyn Error>> {
     let source: Source = source.chars().collect();
     let mut tokens = vec![];
@@ -50,7 +58,12 @@ pub fn tokenize(source: &str) -> Result<Vec<Token>, Box<dyn Error>> {
                 current += token_info.used;
             }
             _ => {
-                return Err("Unknown token".into());
+                let used = eat_whitespace(&source,current);
+                if used > 0 {
+                    current += used;
+                } else {
+                    return Err("Unknown token".into());
+                }
             }
         }
     }
@@ -80,6 +93,28 @@ mod tests {
             Test { source: "0", expected: Token{ kind: TokenType::NumericLiteral, value: "0".into()}},
             Test { source: "1234567890", expected: Token{ kind: TokenType::NumericLiteral, value: "1234567890".into()}},
             Test { source: "0.123456789", expected: Token{ kind: TokenType::NumericLiteral, value: "0.123456789".into()}},
+        ];
+        for test in tests {
+            let tokens = tokenize(test.source).unwrap();
+            assert_eq!(tokens.len(), 1);
+            assert_eq!(tokens[0], test.expected);
+            assert_eq!(tokens[0].kind, TokenType::NumericLiteral);
+            
+        }
+    }
+
+    #[test]
+    fn ignore_whitespace() {
+        struct Test {
+            source: &'static str,
+            expected: Token,
+        }
+        let tests = [
+            Test { source: "   123.456", expected: Token{ kind: TokenType::NumericLiteral, value: "123.456".into()}},
+            Test { source: "1 ", expected: Token{ kind: TokenType::NumericLiteral, value: "1".into()}},
+            Test { source: "\n0\n", expected: Token{ kind: TokenType::NumericLiteral, value: "0".into()}},
+            Test { source: "\n  1234567890\t", expected: Token{ kind: TokenType::NumericLiteral, value: "1234567890".into()}},
+            Test { source: " 0.123456789 ", expected: Token{ kind: TokenType::NumericLiteral, value: "0.123456789".into()}},
         ];
         for test in tests {
             let tokens = tokenize(test.source).unwrap();
