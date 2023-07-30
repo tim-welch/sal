@@ -2,8 +2,10 @@ use std::error::Error;
 
 type Source = Vec<char>;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Token{
+    EOF,
+    
     // Literals
     NumericLiteral{value: String},
     
