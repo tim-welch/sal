@@ -24,8 +24,30 @@ fn literal(tokens: &Tokens, current: usize) -> ExprResult {
     }
 }
 
-fn term(tokens: &Tokens, current: usize) -> ExprResult {
+fn factor(tokens: &Tokens, current: usize) -> ExprResult {
     let mut expr = literal(tokens, current)?;
+    let mut current: usize = current + 1;
+
+    loop {
+        match tokens[current] {
+            Token::Astrix | Token::Slash => {
+                let operator = tokens[current].clone();
+                current = current+1;
+                let right = literal(tokens, current)?;
+                current = current+1;
+                expr = Expr::Binary { left: Box::new(expr), right: Box::new(right) , operator};
+            },
+            _ => {
+                break;
+            }
+        }
+    } 
+    
+    Ok(expr)
+}
+
+fn term(tokens: &Tokens, current: usize) -> ExprResult {
+    let mut expr = factor(tokens, current)?;
     let mut current: usize = current + 1;
 
     loop {
@@ -33,7 +55,7 @@ fn term(tokens: &Tokens, current: usize) -> ExprResult {
             Token::Plus | Token::Minus => {
                 let operator = tokens[current].clone();
                 current = current+1;
-                let right = literal(tokens, current)?;
+                let right = factor(tokens, current)?;
                 current = current+1;
                 expr = Expr::Binary { left: Box::new(expr), right: Box::new(right) , operator};
             },
@@ -122,4 +144,57 @@ mod tests {
             operator: Token::Plus
         });
     }
+    
+    #[test]
+    fn multiplication_is_a_binary_operation() {
+        let tokens: Vec<Token> = vec![
+            Token::NumericLiteral { value: "123.345".into() },
+            Token::Astrix,
+            Token::NumericLiteral { value: "1.0".into() },
+            Token::EOF,
+        ];
+        let ast = parse(&tokens).unwrap();
+        assert_eq!(ast, Expr::Binary{left: Box::new(Expr::NumericLiteral{ value: "123.345".into() }), right: Box::new(Expr::NumericLiteral{ value: "1.0".into() }), operator: Token::Astrix});
+    }
+
+    #[test]
+    fn division_is_a_binary_operation() {
+        let tokens: Vec<Token> = vec![
+            Token::NumericLiteral { value: "123.345".into() },
+            Token::Slash,
+            Token::NumericLiteral { value: "1.0".into() },
+            Token::EOF,
+        ];
+        let ast = parse(&tokens).unwrap();
+        assert_eq!(ast, Expr::Binary{left: Box::new(Expr::NumericLiteral{ value: "123.345".into() }), right: Box::new(Expr::NumericLiteral{ value: "1.0".into() }), operator: Token::Slash});
+    }
+
+    #[test]
+    fn multiplication_division_bind_left_to_right() {
+        let tokens: Vec<Token> = vec![
+            Token::NumericLiteral { value: "123.345".into() },
+            Token::Astrix,
+            Token::NumericLiteral { value: "1.0".into() },
+            Token::Slash,
+            Token::NumericLiteral { value: "1.345".into() },
+            Token::Astrix,
+            Token::NumericLiteral { value: "10.0".into() },
+            Token::EOF,
+        ];
+        let ast = parse(&tokens).unwrap();
+        assert_eq!(ast, Expr::Binary{
+            left: Box::new(Expr::Binary{
+                left: Box::new(Expr::Binary {
+                    left: Box::new(Expr::NumericLiteral{ value: "123.345".into() }),
+                    right: Box::new(Expr::NumericLiteral{ value: "1.0".into() }),
+                    operator: Token::Astrix
+                }),
+                right: Box::new(Expr::NumericLiteral{ value: "1.345".into() }),
+                operator: Token::Slash
+            }),
+            right: Box::new(Expr::NumericLiteral{ value: "10.0".into() }),
+            operator: Token::Astrix
+        });
+    }
+    
 }
