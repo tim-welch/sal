@@ -3,21 +3,15 @@ use std::error::Error;
 type Source = Vec<char>;
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum TokenType {
+pub enum Token{
     // Literals
-    NumericLiteral,
+    NumericLiteral{value: String},
     
     // Operators
     Plus,
     Minus,
     Astrix,
     Slash,
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct Token {
-    kind: TokenType,
-    value: String,
 }
 
 struct TokenInfo {
@@ -41,7 +35,7 @@ fn number(source: &Source, current: usize) -> TokenInfo {
         used += 1;
     }
     
-    TokenInfo {token: Token{kind: TokenType::NumericLiteral, value: source[current..current+used].iter().collect()}, used}
+    TokenInfo {token: Token::NumericLiteral{value: source[current..current+used].iter().collect()}, used}
 }
 
 fn eat_whitespace(source: &Source, current: usize) -> usize {
@@ -65,19 +59,19 @@ pub fn tokenize(source: &str) -> Result<Vec<Token>, Box<dyn Error>> {
                 current += token_info.used;
             }
             '+' => {
-                tokens.push(Token {kind: TokenType::Plus, value: source[current].into()});
+                tokens.push(Token::Plus);
                 current += 1;
             }
             '-' => {
-                tokens.push(Token {kind: TokenType::Minus, value: source[current].into()});
+                tokens.push(Token::Minus);
                 current += 1;
             }
             '*' => {
-                tokens.push(Token {kind: TokenType::Astrix, value: source[current].into()});
+                tokens.push(Token::Astrix);
                 current += 1;
             }
             '/' => {
-                tokens.push(Token {kind: TokenType::Slash, value: source[current].into()});
+                tokens.push(Token::Slash);
                 current += 1;
             }
             _ => {
@@ -111,18 +105,16 @@ mod tests {
             expected: Token,
         }
         let tests = [
-            Test { source: "123.456", expected: Token{ kind: TokenType::NumericLiteral, value: "123.456".into()}},
-            Test { source: "1", expected: Token{ kind: TokenType::NumericLiteral, value: "1".into()}},
-            Test { source: "0", expected: Token{ kind: TokenType::NumericLiteral, value: "0".into()}},
-            Test { source: "1234567890", expected: Token{ kind: TokenType::NumericLiteral, value: "1234567890".into()}},
-            Test { source: "0.123456789", expected: Token{ kind: TokenType::NumericLiteral, value: "0.123456789".into()}},
+            Test { source: "123.456", expected: Token::NumericLiteral{ value: "123.456".into()}},
+            Test { source: "1", expected: Token::NumericLiteral{ value: "1".into()}},
+            Test { source: "0", expected: Token::NumericLiteral{ value: "0".into()}},
+            Test { source: "1234567890", expected: Token::NumericLiteral{ value: "1234567890".into()}},
+            Test { source: "0.123456789", expected: Token::NumericLiteral{ value: "0.123456789".into()}},
         ];
         for test in tests {
             let tokens = tokenize(test.source).unwrap();
             assert_eq!(tokens.len(), 1);
             assert_eq!(tokens[0], test.expected);
-            assert_eq!(tokens[0].kind, TokenType::NumericLiteral);
-            
         }
     }
 
@@ -133,18 +125,16 @@ mod tests {
             expected: Token,
         }
         let tests = [
-            Test { source: "   123.456", expected: Token{ kind: TokenType::NumericLiteral, value: "123.456".into()}},
-            Test { source: "1 ", expected: Token{ kind: TokenType::NumericLiteral, value: "1".into()}},
-            Test { source: "\n0\n", expected: Token{ kind: TokenType::NumericLiteral, value: "0".into()}},
-            Test { source: "\n  1234567890\t", expected: Token{ kind: TokenType::NumericLiteral, value: "1234567890".into()}},
-            Test { source: " 0.123456789 ", expected: Token{ kind: TokenType::NumericLiteral, value: "0.123456789".into()}},
+            Test { source: "   123.456", expected: Token::NumericLiteral{ value: "123.456".into()}},
+            Test { source: "1 ", expected: Token::NumericLiteral{ value: "1".into()}},
+            Test { source: "\n0\n", expected: Token::NumericLiteral{ value: "0".into()}},
+            Test { source: "\n  1234567890\t", expected: Token::NumericLiteral{ value: "1234567890".into()}},
+            Test { source: " 0.123456789 ", expected: Token::NumericLiteral{ value: "0.123456789".into()}},
         ];
         for test in tests {
             let tokens = tokenize(test.source).unwrap();
             assert_eq!(tokens.len(), 1);
             assert_eq!(tokens[0], test.expected);
-            assert_eq!(tokens[0].kind, TokenType::NumericLiteral);
-
         }
     }
 
@@ -156,28 +146,28 @@ mod tests {
         }
         let tests = [
             Test { source: "   123.456 2", expected: vec![
-                Token{ kind: TokenType::NumericLiteral, value: "123.456".into()},
-                Token{ kind: TokenType::NumericLiteral, value: "2".into()},
+                Token::NumericLiteral{ value: "123.456".into()},
+                Token::NumericLiteral{ value: "2".into()},
             ]},
             Test { source: "1 2", expected: vec![
-                Token{ kind: TokenType::NumericLiteral, value: "1".into()},
-                Token{ kind: TokenType::NumericLiteral, value: "2".into()},
+                Token::NumericLiteral{ value: "1".into()},
+                Token::NumericLiteral{ value: "2".into()},
             ]},
             Test { source: "\n0\n123.65", expected: vec![
-                Token{ kind: TokenType::NumericLiteral, value: "0".into()},
-                Token{ kind: TokenType::NumericLiteral, value: "123.65".into()},
+                Token::NumericLiteral{ value: "0".into()},
+                Token::NumericLiteral{ value: "123.65".into()},
             ]},
             Test { source: "\n  123456 7890\t", expected: vec![
-                Token{ kind: TokenType::NumericLiteral, value: "123456".into()},
-                Token{ kind: TokenType::NumericLiteral, value: "7890".into()},
+                Token::NumericLiteral{ value: "123456".into()},
+                Token::NumericLiteral{ value: "7890".into()},
             ]},
             Test { source: " 0.1234 56789 123\n 0 432.10 89", expected: vec![
-                Token{ kind: TokenType::NumericLiteral, value: "0.1234".into()},
-                Token{ kind: TokenType::NumericLiteral, value: "56789".into()},
-                Token{ kind: TokenType::NumericLiteral, value: "123".into()},
-                Token{ kind: TokenType::NumericLiteral, value: "0".into()},
-                Token{ kind: TokenType::NumericLiteral, value: "432.10".into()},
-                Token{ kind: TokenType::NumericLiteral, value: "89".into()},
+                Token::NumericLiteral{ value: "0.1234".into()},
+                Token::NumericLiteral{ value: "56789".into()},
+                Token::NumericLiteral{ value: "123".into()},
+                Token::NumericLiteral{ value: "0".into()},
+                Token::NumericLiteral{ value: "432.10".into()},
+                Token::NumericLiteral{ value: "89".into()},
             ]},
         ];
         for test in tests {
@@ -195,16 +185,16 @@ mod tests {
         }
         let tests = [
             Test { source: "+", expected: vec![
-                Token{ kind: TokenType::Plus, value: "+".into()},
+                Token::Plus,
             ]},
             Test { source: "-", expected: vec![
-                Token{ kind: TokenType::Minus, value: "-".into()},
+                Token::Minus,
             ]},
             Test { source: "*", expected: vec![
-                Token{ kind: TokenType::Astrix, value: "*".into()},
+                Token::Astrix,
             ]},
             Test { source: "/", expected: vec![
-                Token{ kind: TokenType::Slash, value: "/".into()},
+                Token::Slash,
             ]},
         ];
         for test in tests {
