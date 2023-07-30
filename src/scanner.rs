@@ -124,4 +124,43 @@ mod tests {
 
         }
     }
+
+    #[test]
+    fn multiple_tokens() {
+        struct Test {
+            source: &'static str,
+            expected: Vec<Token>,
+        }
+        let tests = [
+            Test { source: "   123.456 2", expected: vec![
+                Token{ kind: TokenType::NumericLiteral, value: "123.456".into()},
+                Token{ kind: TokenType::NumericLiteral, value: "2".into()},
+            ]},
+            Test { source: "1 2", expected: vec![
+                Token{ kind: TokenType::NumericLiteral, value: "1".into()},
+                Token{ kind: TokenType::NumericLiteral, value: "2".into()},
+            ]},
+            Test { source: "\n0\n123.65", expected: vec![
+                Token{ kind: TokenType::NumericLiteral, value: "0".into()},
+                Token{ kind: TokenType::NumericLiteral, value: "123.65".into()},
+            ]},
+            Test { source: "\n  123456 7890\t", expected: vec![
+                Token{ kind: TokenType::NumericLiteral, value: "123456".into()},
+                Token{ kind: TokenType::NumericLiteral, value: "7890".into()},
+            ]},
+            Test { source: " 0.1234 56789 123\n 0 432.10 89", expected: vec![
+                Token{ kind: TokenType::NumericLiteral, value: "0.1234".into()},
+                Token{ kind: TokenType::NumericLiteral, value: "56789".into()},
+                Token{ kind: TokenType::NumericLiteral, value: "123".into()},
+                Token{ kind: TokenType::NumericLiteral, value: "0".into()},
+                Token{ kind: TokenType::NumericLiteral, value: "432.10".into()},
+                Token{ kind: TokenType::NumericLiteral, value: "89".into()},
+            ]},
+        ];
+        for test in tests {
+            let tokens = tokenize(test.source).unwrap();
+            assert_eq!(tokens, test.expected);
+
+        }
+    }
 }
