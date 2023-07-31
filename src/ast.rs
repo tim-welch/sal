@@ -13,40 +13,13 @@ pub enum Expr {
     NumericLiteral{value: String},
 }
 
+pub fn parse(tokens: &Tokens) -> ExprResult {
+    let mut current: usize = 0;
+    term(&tokens, &mut current)
+}
+
 fn is_eos(tokens: &Tokens, current: usize) -> bool {
     tokens.len() <= current
-}
-
-fn literal(tokens: &Tokens, current: &mut usize) -> ExprResult {
-    if is_eos(tokens, *current) || tokens[*current] == Token::EOF {
-        return Err("Unexpected end of file".into());
-    }
-    match &tokens[*current] {
-        Token::NumericLiteral { value } => {
-            *current += 1;
-            Ok(Expr::NumericLiteral { value: value.to_string() })
-        },
-        _ => Err(format!("Unexpected token: {:?}", tokens[*current]).into())
-    }
-}
-
-fn factor(tokens: &Tokens, current: &mut usize) -> ExprResult {
-    let mut expr = literal(tokens, current)?;
-    loop {
-        match tokens[*current] {
-            Token::Astrix | Token::Slash => {
-                let operator = tokens[*current].clone();
-                *current += 1;
-                let right = literal(tokens, current)?;
-                expr = Expr::Binary { left: Box::new(expr), right: Box::new(right) , operator};
-            },
-            _ => {
-                break;
-            }
-        }
-    } 
-    
-    Ok(expr)
 }
 
 fn term(tokens: &Tokens, current: &mut usize) -> ExprResult {
@@ -68,10 +41,38 @@ fn term(tokens: &Tokens, current: &mut usize) -> ExprResult {
     Ok(expr)
 }
 
-pub fn parse(tokens: &Tokens) -> ExprResult {
-    let mut current: usize = 0;
-    term(&tokens, &mut current)
+fn factor(tokens: &Tokens, current: &mut usize) -> ExprResult {
+    let mut expr = literal(tokens, current)?;
+    loop {
+        match tokens[*current] {
+            Token::Astrix | Token::Slash => {
+                let operator = tokens[*current].clone();
+                *current += 1;
+                let right = literal(tokens, current)?;
+                expr = Expr::Binary { left: Box::new(expr), right: Box::new(right) , operator};
+            },
+            _ => {
+                break;
+            }
+        }
+    } 
+    
+    Ok(expr)
 }
+
+fn literal(tokens: &Tokens, current: &mut usize) -> ExprResult {
+    if is_eos(tokens, *current) || tokens[*current] == Token::EOF {
+        return Err("Unexpected end of file".into());
+    }
+    match &tokens[*current] {
+        Token::NumericLiteral { value } => {
+            *current += 1;
+            Ok(Expr::NumericLiteral { value: value.to_string() })
+        },
+        _ => Err(format!("Unexpected token: {:?}", tokens[*current]).into())
+    }
+}
+
 
 #[cfg(test)]
 mod tests {
