@@ -10,31 +10,31 @@ pub enum Expr {
     NumericLiteral{value: String},
 }
 
-fn is_eof(tokens: &Tokens, current: usize) -> bool {
+fn is_eos(tokens: &Tokens, current: usize) -> bool {
     tokens.len() <= current
 }
 
-fn literal(tokens: &Tokens, current: usize) -> ExprResult {
-    if is_eof(tokens, current) {
+fn literal(tokens: &Tokens, current: &mut usize) -> ExprResult {
+    if is_eos(tokens, *current) || tokens[*current] == Token::EOF {
         return Err("Unexpected end of file".into());
     }
-    match &tokens[current] {
-        Token::NumericLiteral { value } => Ok(Expr::NumericLiteral { value: value.to_string() }),
-        _ => Err(format!("Unexpected token: {:?}", tokens[current]).into())
+    match &tokens[*current] {
+        Token::NumericLiteral { value } => {
+            *current += 1;
+            Ok(Expr::NumericLiteral { value: value.to_string() })
+        },
+        _ => Err(format!("Unexpected token: {:?}", tokens[*current]).into())
     }
 }
 
-fn factor(tokens: &Tokens, current: usize) -> ExprResult {
+fn factor(tokens: &Tokens, current: &mut usize) -> ExprResult {
     let mut expr = literal(tokens, current)?;
-    let mut current: usize = current + 1;
-
     loop {
-        match tokens[current] {
+        match tokens[*current] {
             Token::Astrix | Token::Slash => {
-                let operator = tokens[current].clone();
-                current = current+1;
+                let operator = tokens[*current].clone();
+                *current += 1;
                 let right = literal(tokens, current)?;
-                current = current+1;
                 expr = Expr::Binary { left: Box::new(expr), right: Box::new(right) , operator};
             },
             _ => {
@@ -46,17 +46,14 @@ fn factor(tokens: &Tokens, current: usize) -> ExprResult {
     Ok(expr)
 }
 
-fn term(tokens: &Tokens, current: usize) -> ExprResult {
+fn term(tokens: &Tokens, current: &mut usize) -> ExprResult {
     let mut expr = factor(tokens, current)?;
-    let mut current: usize = current + 1;
-
     loop {
-        match tokens[current] {
+        match tokens[*current] {
             Token::Plus | Token::Minus => {
-                let operator = tokens[current].clone();
-                current = current+1;
+                let operator = tokens[*current].clone();
+                *current += 1;
                 let right = factor(tokens, current)?;
-                current = current+1;
                 expr = Expr::Binary { left: Box::new(expr), right: Box::new(right) , operator};
             },
             _ => {
@@ -69,7 +66,8 @@ fn term(tokens: &Tokens, current: usize) -> ExprResult {
 }
 
 pub fn parse(tokens: &Tokens) -> ExprResult {
-    term(&tokens, 0)
+    let mut current: usize = 0;
+    term(&tokens, &mut current)
 }
 
 #[cfg(test)]
@@ -194,6 +192,43 @@ mod tests {
             }),
             right: Box::new(Expr::NumericLiteral{ value: "10.0".into() }),
             operator: Token::Astrix
+        });
+    }
+
+    #[test]
+    fn multiplication_has_precedence_over_addition() {
+        // 123.345 + 1.0 / 1.345 - 10.0
+        //             -
+        //           /   \
+        //         +     10.0
+        //        /  \
+        // 123.345   /
+        //         /  \
+        //      1.0    1.345
+
+        let tokens: Vec<Token> = vec![
+            Token::NumericLiteral { value: "123.345".into() },
+            Token::Plus,
+            Token::NumericLiteral { value: "1.0".into() },
+            Token::Slash,
+            Token::NumericLiteral { value: "1.345".into() },
+            Token::Minus,
+            Token::NumericLiteral { value: "10.0".into() },
+            Token::EOF,
+        ];
+        let ast = parse(&tokens).unwrap();
+        assert_eq!(ast, Expr::Binary{
+            left: Box::new(Expr::Binary { 
+                left: Box::new(Expr::NumericLiteral { value: "123.345".into() }),
+                right: Box::new(Expr::Binary {
+                    left: Box::new(Expr::NumericLiteral { value: "1.0".into() }),
+                    right: Box::new(Expr::NumericLiteral { value: "1.345".into()}),
+                    operator: Token::Slash,
+                }),
+                operator: Token::Plus, 
+             }),
+            right: Box::new(Expr::NumericLiteral { value: "10.0".into() }),
+            operator: Token::Minus,
         });
     }
     
