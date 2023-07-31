@@ -4,6 +4,9 @@ use crate::scanner::Token;
 type ExprResult = Result<Expr, Box<dyn Error>>;
 type Tokens = Vec<Token>;
 
+// TODO: Don't use a mutable parameter for current, instead return the number of
+//       tokens consumed in the same way the scanner does for characters used.
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum Expr {
     Binary{left: Box<Expr>, operator: Token, right: Box<Expr>},
