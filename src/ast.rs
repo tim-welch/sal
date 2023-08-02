@@ -35,15 +35,15 @@ fn is_eos(tokens: &Tokens, current: usize) -> bool {
 
 fn term(tokens: &Tokens, current: usize) -> ExprResult {
     let fact = factor(tokens, current)?;
-    let mut expr= fact.expr;
+    let mut expr = fact.expr;
     let mut used = fact.used;
 
     loop {
-        match tokens[current+used] {
+        match tokens[current + used] {
             Token::Plus | Token::Minus => {
-                let operator = tokens[current+used].clone();
+                let operator = tokens[current + used].clone();
                 used += 1;
-                let fact =  factor(tokens, current+used)?;
+                let fact = factor(tokens, current + used)?;
                 let right = fact.expr;
                 used += fact.used;
                 expr = Expr::Binary {
@@ -58,7 +58,7 @@ fn term(tokens: &Tokens, current: usize) -> ExprResult {
         }
     }
 
-    Ok(ExprInfo { expr, used})
+    Ok(ExprInfo { expr, used })
 }
 
 fn factor(tokens: &Tokens, current: usize) -> ExprResult {
@@ -66,11 +66,11 @@ fn factor(tokens: &Tokens, current: usize) -> ExprResult {
     let mut expr = lit.expr;
     let mut used: usize = lit.used;
     loop {
-        match tokens[current+used] {
+        match tokens[current + used] {
             Token::Astrix | Token::Slash => {
-                let operator = tokens[current+used].clone();
+                let operator = tokens[current + used].clone();
                 used += 1;
-                let lit = literal(tokens, current+used)?;
+                let lit = literal(tokens, current + used)?;
                 let right = lit.expr;
                 used += lit.used;
                 expr = Expr::Binary {
@@ -85,7 +85,7 @@ fn factor(tokens: &Tokens, current: usize) -> ExprResult {
         }
     }
 
-    Ok(ExprInfo{expr, used})
+    Ok(ExprInfo { expr, used })
 }
 
 fn literal(tokens: &Tokens, current: usize) -> ExprResult {
