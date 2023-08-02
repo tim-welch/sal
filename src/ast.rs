@@ -22,7 +22,7 @@ type ExprResult = Result<ExprInfo, Box<dyn Error>>;
 type Tokens = Vec<Token>;
 
 pub fn parse(tokens: &Tokens) -> Result<Expr, Box<dyn Error>> {
-    let root = term(&tokens, 0);
+    let root = term(tokens, 0);
     match root {
         Ok(root) => Ok(root.expr),
         Err(err) => Err(err),
@@ -38,24 +38,17 @@ fn term(tokens: &Tokens, current: usize) -> ExprResult {
     let mut expr = fact.expr;
     let mut used = fact.used;
 
-    loop {
-        match tokens[current + used] {
-            Token::Plus | Token::Minus => {
-                let operator = tokens[current + used].clone();
-                used += 1;
-                let fact = factor(tokens, current + used)?;
-                let right = fact.expr;
-                used += fact.used;
-                expr = Expr::Binary {
-                    left: Box::new(expr),
-                    right: Box::new(right),
-                    operator,
-                };
-            }
-            _ => {
-                break;
-            }
-        }
+    while let Token::Plus | Token::Minus = tokens[current + used] {
+        let operator = tokens[current + used].clone();
+        used += 1;
+        let fact = factor(tokens, current + used)?;
+        let right = fact.expr;
+        used += fact.used;
+        expr = Expr::Binary {
+            left: Box::new(expr),
+            right: Box::new(right),
+            operator,
+        };
     }
 
     Ok(ExprInfo { expr, used })
@@ -65,24 +58,17 @@ fn factor(tokens: &Tokens, current: usize) -> ExprResult {
     let lit = literal(tokens, current)?;
     let mut expr = lit.expr;
     let mut used: usize = lit.used;
-    loop {
-        match tokens[current + used] {
-            Token::Astrix | Token::Slash => {
-                let operator = tokens[current + used].clone();
-                used += 1;
-                let lit = literal(tokens, current + used)?;
-                let right = lit.expr;
-                used += lit.used;
-                expr = Expr::Binary {
-                    left: Box::new(expr),
-                    right: Box::new(right),
-                    operator,
-                };
-            }
-            _ => {
-                break;
-            }
-        }
+    while let Token::Astrix | Token::Slash = tokens[current + used] {
+        let operator = tokens[current + used].clone();
+        used += 1;
+        let lit = literal(tokens, current + used)?;
+        let right = lit.expr;
+        used += lit.used;
+        expr = Expr::Binary {
+            left: Box::new(expr),
+            right: Box::new(right),
+            operator,
+        };
     }
 
     Ok(ExprInfo { expr, used })
