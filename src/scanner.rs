@@ -16,79 +16,99 @@ pub enum Token {
     Slash,
 }
 
-struct TokenInfo {
-    token: Token,
-    used: usize,
+pub struct Lexer<'a> {
+    source: &'a [char],
 }
 
-fn is_end(source: &Source, current: usize) -> bool {
-    source.len() <= current
+fn is_end(lex: &Lexer, used: usize) -> bool {
+    lex.source.len() <= used
 }
 
-fn number(source: &Source, current: usize) -> TokenInfo {
+fn number<'a>(lex: &'a Lexer) -> (Lexer<'a>, Option<Token>) {
     let mut used = 0;
-    while !is_end(source, current + used) && source[current + used].is_ascii_digit() {
+    while !is_end(lex, used) && lex.source[used].is_ascii_digit() {
         used += 1;
     }
-    if !is_end(source, current + used) && source[current + used] == '.' {
+    if !is_end(lex, used) && lex.source[used] == '.' {
         used += 1;
     }
-    while !is_end(source, current + used) && source[current + used].is_ascii_digit() {
+    while !is_end(lex, used) && lex.source[used].is_ascii_digit() {
         used += 1;
     }
 
-    TokenInfo {
-        token: Token::NumericLiteral {
-            value: source[current..current + used].iter().collect(),
+    (
+        Lexer {
+            source: &(lex.source[used..]),
         },
-        used,
+        Some(Token::NumericLiteral {
+            value: lex.source[..used].iter().collect(),
+        }),
+    )
+}
+
+fn eat_whitespace<'a>(lex: &'a Lexer) -> Option<Lexer<'a>> {
+    let mut used: usize = 0;
+    while !is_end(lex, used) && lex.source[used].is_whitespace() {
+        used += 1;
+    }
+    if used > 0 {
+        Some(Lexer {
+            source: &(lex.source[used..]),
+        })
+    } else {
+        None
     }
 }
 
-fn eat_whitespace(source: &Source, current: usize) -> usize {
-    let mut used: usize = 0;
-    while !is_end(source, current + used) && source[current + used].is_whitespace() {
-        used += 1;
+fn next_token<'a>(lex: &'a Lexer) -> Result<(Lexer<'a>, Option<Token>), Box<dyn Error>> {
+    match lex.source[0] {
+        '0'..='9' => Ok(number(lex)),
+        '+' => Ok((
+            Lexer {
+                source: &(lex.source[1..]),
+            },
+            Some(Token::Plus),
+        )),
+        '-' => Ok((
+            Lexer {
+                source: &(lex.source[1..]),
+            },
+            Some(Token::Minus),
+        )),
+        '*' => Ok((
+            Lexer {
+                source: &(lex.source[1..]),
+            },
+            Some(Token::Astrix),
+        )),
+        '/' => Ok((
+            Lexer {
+                source: &(lex.source[1..]),
+            },
+            Some(Token::Slash),
+        )),
+        _ => {
+            if let Some(lex) = eat_whitespace(lex) {
+                Ok((lex, None))
+            } else {
+                Err("Unknown token".into())
+            }
+        }
     }
-    used
 }
 
 pub fn tokenize(source: &str) -> Result<Vec<Token>, Box<dyn Error>> {
     let source: Source = source.chars().collect();
     let mut tokens = vec![];
-    let mut current: usize = 0;
+    let mut lex = Lexer {
+        source: &source[..],
+    };
 
-    while !is_end(&source, current) {
-        match source[current] {
-            '0'..='9' => {
-                let token_info = number(&source, current);
-                tokens.push(token_info.token);
-                current += token_info.used;
-            }
-            '+' => {
-                tokens.push(Token::Plus);
-                current += 1;
-            }
-            '-' => {
-                tokens.push(Token::Minus);
-                current += 1;
-            }
-            '*' => {
-                tokens.push(Token::Astrix);
-                current += 1;
-            }
-            '/' => {
-                tokens.push(Token::Slash);
-                current += 1;
-            }
-            _ => {
-                let used = eat_whitespace(&source, current);
-                if used > 0 {
-                    current += used;
-                } else {
-                    return Err("Unknown token".into());
-                }
-            }
+    while !is_end(&lex, 0) {
+        let next = next_token(&lex)?;
+        lex = next.0;
+        if let Some(token) = next.1 {
+            tokens.push(token);
         }
     }
 
