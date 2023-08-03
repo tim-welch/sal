@@ -1,6 +1,8 @@
+use rpds::Vector;
 use std::error::Error;
 
 type Source = Vec<char>;
+type Tokens = Vector<Token>;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Token {
@@ -97,22 +99,29 @@ fn next_token<'a>(lex: &'a Lexer) -> Result<(Lexer<'a>, Option<Token>), Box<dyn 
     }
 }
 
+fn do_tokenize(lex: &Lexer, tokens: Tokens) -> Result<Tokens, Box<dyn Error>> {
+    if is_end(lex, 0) {
+        Ok(tokens)
+    } else {
+        let next = next_token(lex)?;
+        let new_tokens = if let Some(token) = next.1 {
+            tokens.push_back(token)
+        } else {
+            tokens
+        };
+        do_tokenize(&next.0, new_tokens)
+    }
+}
+
 pub fn tokenize(source: &str) -> Result<Vec<Token>, Box<dyn Error>> {
     let source: Source = source.chars().collect();
-    let mut tokens = vec![];
-    let mut lex = Lexer {
+    let tokens = Tokens::new();
+    let lex = Lexer {
         source: &source[..],
     };
 
-    while !is_end(&lex, 0) {
-        let next = next_token(&lex)?;
-        lex = next.0;
-        if let Some(token) = next.1 {
-            tokens.push(token);
-        }
-    }
-
-    Ok(tokens)
+    let tokens = do_tokenize(&lex, tokens)?;
+    Ok(tokens.iter().cloned().collect())
 }
 
 #[cfg(test)]

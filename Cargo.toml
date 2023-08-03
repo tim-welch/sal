@@ -7,3 +7,4 @@ authors = ["tim@welchnet.org"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+rpds = "0.13.0"
