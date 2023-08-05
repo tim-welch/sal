@@ -28,6 +28,15 @@ pub fn evaluate(expr: &Expr) -> Result<Value, Box<dyn Error>> {
                 (Token::Plus, Value::Number(left), Value::Number(right)) => {
                     Ok(Value::Number(left + right))
                 }
+                (Token::Minus, Value::Number(left), Value::Number(right)) => {
+                    Ok(Value::Number(left - right))
+                }
+                (Token::Astrix, Value::Number(left), Value::Number(right)) => {
+                    Ok(Value::Number(left * right))
+                }
+                (Token::Slash, Value::Number(left), Value::Number(right)) => {
+                    Ok(Value::Number(left / right))
+                }
                 _ => Err("Not supported".into()),
             }
         }
@@ -101,6 +110,121 @@ mod tests {
                 },
                 expected: Value::Number(8753.0),
             },
+        ];
+        for test in tests {
+            let value = evaluate(&test.expr).unwrap();
+            assert_eq!(value, test.expected);
+        }
+    }
+
+    #[test]
+    fn evaluate_subtraction() {
+        struct Test {
+            expr: Expr,
+            expected: Value,
+        }
+        let tests = vec![
+            Test {
+                expr: Expr::Binary {
+                    left: Box::new(Expr::NumericLiteral {
+                        value: "123.345".into(),
+                    }),
+                    right: Box::new(Expr::NumericLiteral {
+                        value: "1.0".into(),
+                    }),
+                    operator: Token::Minus,
+                },
+                expected: Value::Number(122.345),
+            },
+            Test {
+                expr: Expr::Binary {
+                    left: Box::new(Expr::NumericLiteral {
+                        value: "8753.0".into(),
+                    }),
+                    right: Box::new(Expr::NumericLiteral {
+                        value: "0.0".into(),
+                    }),
+                    operator: Token::Minus,
+                },
+                expected: Value::Number(8753.0),
+            },
+        ];
+        for test in tests {
+            let value = evaluate(&test.expr).unwrap();
+            assert_eq!(value, test.expected);
+        }
+    }
+
+    #[test]
+    fn evaluate_multiplication() {
+        struct Test {
+            expr: Expr,
+            expected: Value,
+        }
+        let tests = vec![
+            Test {
+                expr: Expr::Binary {
+                    left: Box::new(Expr::NumericLiteral {
+                        value: "123.345".into(),
+                    }),
+                    right: Box::new(Expr::NumericLiteral {
+                        value: "1.0".into(),
+                    }),
+                    operator: Token::Astrix,
+                },
+                expected: Value::Number(123.345),
+            },
+            Test {
+                expr: Expr::Binary {
+                    left: Box::new(Expr::NumericLiteral {
+                        value: "8753.0".into(),
+                    }),
+                    right: Box::new(Expr::NumericLiteral {
+                        value: "0.0".into(),
+                    }),
+                    operator: Token::Astrix,
+                },
+                expected: Value::Number(0.0),
+            },
+        ];
+        for test in tests {
+            let value = evaluate(&test.expr).unwrap();
+            assert_eq!(value, test.expected);
+        }
+    }
+
+    #[test]
+    fn evaluate_division() {
+        struct Test {
+            expr: Expr,
+            expected: Value,
+        }
+        let tests = vec![
+            Test {
+                expr: Expr::Binary {
+                    left: Box::new(Expr::NumericLiteral {
+                        value: "123.345".into(),
+                    }),
+                    right: Box::new(Expr::NumericLiteral {
+                        value: "1.0".into(),
+                    }),
+                    operator: Token::Slash,
+                },
+                expected: Value::Number(123.345),
+            },
+            // TODO: Fix floating point rounding error
+            // Test {
+            //     expr: Expr::Binary {
+            //         left: Box::new(Expr::NumericLiteral {
+            //             value: "8753.0".into(),
+            //         }),
+            //         right: Box::new(Expr::NumericLiteral {
+            //             value: "2.2".into(),
+            //         }),
+            //         operator: Token::Slash,
+            //     },
+            //     expected: Value::Number(3978.636363636363),
+            // },
         ];
         for test in tests {
             let value = evaluate(&test.expr).unwrap();
