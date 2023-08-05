@@ -3,10 +3,7 @@ use crate::scanner::Token;
 use std::error::Error;
 use std::str::FromStr;
 
-// NOTE: Deriving PartialEq is not going to work in all cases.
-// We'll need to use approx_eq! or something to compare f64, but for now this is
-// good enough.
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub enum Value {
     Number(f64),
 }
@@ -46,6 +43,17 @@ pub fn evaluate(expr: &Expr) -> Result<Value, Box<dyn Error>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use float_cmp::approx_eq;
+
+    impl PartialEq for Value {
+        fn eq(&self, other: &Self) -> bool {
+            match (self, other) {
+                (Value::Number(left), Value::Number(right)) => {
+                    approx_eq!(f64, *left, *right, ulps = 2)
+                }
+            }
+        }
+    }
 
     #[test]
     fn evaluate_number() {
@@ -212,19 +220,18 @@ mod tests {
                 },
                 expected: Value::Number(123.345),
             },
-            // TODO: Fix floating point rounding error
-            // Test {
-            //     expr: Expr::Binary {
-            //         left: Box::new(Expr::NumericLiteral {
-            //             value: "8753.0".into(),
-            //         }),
-            //         right: Box::new(Expr::NumericLiteral {
-            //             value: "2.2".into(),
-            //         }),
-            //         operator: Token::Slash,
-            //     },
-            //     expected: Value::Number(3978.636363636363),
-            // },
+            Test {
+                expr: Expr::Binary {
+                    left: Box::new(Expr::NumericLiteral {
+                        value: "8753.0".into(),
+                    }),
+                    right: Box::new(Expr::NumericLiteral {
+                        value: "2.2".into(),
+                    }),
+                    operator: Token::Slash,
+                },
+                expected: Value::Number(3978.63636363636364),
+            },
         ];
         for test in tests {
             let value = evaluate(&test.expr).unwrap();
