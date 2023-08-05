@@ -238,4 +238,66 @@ mod tests {
             assert_eq!(value, test.expected);
         }
     }
+
+    #[test]
+    fn evaluate_precedence() {
+        struct Test {
+            expr: Expr,
+            expected: Value,
+        }
+        let tests = vec![
+            Test {
+                expr: Expr::Binary {
+                    left: Box::new(Expr::Binary {
+                        left: Box::new(Expr::NumericLiteral {
+                            value: "123.345".into(),
+                        }),
+                        right: Box::new(Expr::Binary {
+                            left: Box::new(Expr::NumericLiteral {
+                                value: "1.0".into(),
+                            }),
+                            right: Box::new(Expr::NumericLiteral {
+                                value: "1.345".into(),
+                            }),
+                            operator: Token::Slash,
+                        }),
+                        operator: Token::Plus,
+                    }),
+                    right: Box::new(Expr::NumericLiteral {
+                        value: "10.0".into(),
+                    }),
+                    operator: Token::Minus,
+                },
+                expected: Value::Number(114.0884944237918),
+            },
+            Test {
+                expr: Expr::Binary {
+                    left: Box::new(Expr::Binary {
+                        left: Box::new(Expr::NumericLiteral {
+                            value: "123.345".into(),
+                        }),
+                        right: Box::new(Expr::Binary {
+                            left: Box::new(Expr::NumericLiteral {
+                                value: "1.0".into(),
+                            }),
+                            right: Box::new(Expr::NumericLiteral {
+                                value: "1.345".into(),
+                            }),
+                            operator: Token::Minus,
+                        }),
+                        operator: Token::Plus,
+                    }),
+                    right: Box::new(Expr::NumericLiteral {
+                        value: "10.0".into(),
+                    }),
+                    operator: Token::Astrix,
+                },
+                expected: Value::Number(1230.0),
+            },
+        ];
+        for test in tests {
+            let value = evaluate(&test.expr).unwrap();
+            assert_eq!(value, test.expected);
+        }
+    }
 }
