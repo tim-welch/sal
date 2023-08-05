@@ -1,6 +1,8 @@
 use crate::scanner::Token;
 use std::error::Error;
 
+// TODO: Use recursion to remove mutability
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum Expr {
     Binary {
@@ -30,7 +32,7 @@ pub fn parse(tokens: &Tokens) -> Result<Expr, Box<dyn Error>> {
 }
 
 fn is_eos(tokens: &Tokens, current: usize) -> bool {
-    tokens.len() <= current
+    tokens.len() <= current || tokens[current] == Token::EOF
 }
 
 fn term(tokens: &Tokens, current: usize) -> ExprResult {
@@ -38,17 +40,24 @@ fn term(tokens: &Tokens, current: usize) -> ExprResult {
     let mut expr = fact.expr;
     let mut used = fact.used;
 
-    while let Token::Plus | Token::Minus = tokens[current + used] {
-        let operator = tokens[current + used].clone();
-        used += 1;
-        let fact = factor(tokens, current + used)?;
-        let right = fact.expr;
-        used += fact.used;
-        expr = Expr::Binary {
-            left: Box::new(expr),
-            right: Box::new(right),
-            operator,
-        };
+    while !is_eos(tokens, current + used) {
+        match tokens[current + used] {
+            Token::Plus | Token::Minus => {
+                let operator = tokens[current + used].clone();
+                used += 1;
+                let fact = factor(tokens, current + used)?;
+                let right = fact.expr;
+                used += fact.used;
+                expr = Expr::Binary {
+                    left: Box::new(expr),
+                    right: Box::new(right),
+                    operator,
+                };
+            }
+            _ => {
+                break;
+            }
+        }
     }
 
     Ok(ExprInfo { expr, used })
@@ -58,24 +67,31 @@ fn factor(tokens: &Tokens, current: usize) -> ExprResult {
     let lit = literal(tokens, current)?;
     let mut expr = lit.expr;
     let mut used: usize = lit.used;
-    while let Token::Astrix | Token::Slash = tokens[current + used] {
-        let operator = tokens[current + used].clone();
-        used += 1;
-        let lit = literal(tokens, current + used)?;
-        let right = lit.expr;
-        used += lit.used;
-        expr = Expr::Binary {
-            left: Box::new(expr),
-            right: Box::new(right),
-            operator,
-        };
+    while !is_eos(tokens, current + used) {
+        match tokens[current + used] {
+            Token::Astrix | Token::Slash => {
+                let operator = tokens[current + used].clone();
+                used += 1;
+                let lit = literal(tokens, current + used)?;
+                let right = lit.expr;
+                used += lit.used;
+                expr = Expr::Binary {
+                    left: Box::new(expr),
+                    right: Box::new(right),
+                    operator,
+                };
+            }
+            _ => {
+                break;
+            }
+        }
     }
 
     Ok(ExprInfo { expr, used })
 }
 
 fn literal(tokens: &Tokens, current: usize) -> ExprResult {
-    if is_eos(tokens, current) || tokens[current] == Token::EOF {
+    if is_eos(tokens, current) {
         return Err("Unexpected end of file".into());
     }
     match &tokens[current] {
@@ -92,6 +108,7 @@ fn literal(tokens: &Tokens, current: usize) -> ExprResult {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::scanner::tokenize;
 
     #[test]
     fn parse_empty() {
@@ -373,5 +390,12 @@ mod tests {
                 operator: Token::Minus,
             }
         );
+    }
+
+    #[test]
+    fn integrates_with_scanner() {
+        let tokens = tokenize("10 + 11").unwrap();
+        let ast = parse(&tokens).unwrap();
+        println!("{:?}", ast);
     }
 }
