@@ -1,6 +1,8 @@
 use crate::scanner::Token;
 use std::error::Error;
 
+// TODO: Use recursion to remove mutability
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum Expr {
     Binary {
