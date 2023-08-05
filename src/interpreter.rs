@@ -26,11 +26,33 @@ mod tests {
 
     #[test]
     fn evaluate_number() {
-        let expr = Expr::NumericLiteral {
-            value: String::from("123.345"),
-        };
-        let expected = Value::Number { value: 123.345 };
-        let value = evaluate(&expr).unwrap();
-        assert_eq!(value, expected);
+        struct Test {
+            expr: Expr,
+            expected: Value,
+        }
+        let tests = vec![
+            Test {
+                expr: Expr::NumericLiteral {
+                    value: String::from("123.345"),
+                },
+                expected: Value::Number { value: 123.345 },
+            },
+            Test {
+                expr: Expr::NumericLiteral {
+                    value: String::from("0"),
+                },
+                expected: Value::Number { value: 0.0 },
+            },
+            Test {
+                expr: Expr::NumericLiteral {
+                    value: String::from("0.0"),
+                },
+                expected: Value::Number { value: 0.0 },
+            },
+        ];
+        for test in tests {
+            let value = evaluate(&test.expr).unwrap();
+            assert_eq!(value, test.expected);
+        }
     }
 }
