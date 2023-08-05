@@ -26,16 +26,16 @@ struct ExprInfo {
 type ExprResult = Result<ExprInfo, Box<dyn Error>>;
 type Tokens = Vec<Token>;
 
+fn is_eos(tokens: &Tokens, current: usize) -> bool {
+    tokens.len() <= current || tokens[current] == Token::EOF
+}
+
 pub fn parse(tokens: &Tokens) -> Result<Expr, Box<dyn Error>> {
     let root = expression(tokens, 0);
     match root {
         Ok(root) => Ok(root.expr),
         Err(err) => Err(err),
     }
-}
-
-fn is_eos(tokens: &Tokens, current: usize) -> bool {
-    tokens.len() <= current || tokens[current] == Token::EOF
 }
 
 fn expression(tokens: &Tokens, current: usize) -> ExprResult {

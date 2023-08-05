@@ -1,11 +1,8 @@
 ```
-expression         -> literal
-                    | binary
-                    | grouping ;
-                    
+expression         -> term ;
+term               -> factor ( ("-" | "+") factor )* ;
+factor             -> primary ( ("*" | "/") primary )* ;
+primary            -> literal | grouping
 literal            -> NUMBER ;
 grouping           -> "(" expression ")"
-primary            -> literal | grouping
-binary             -> expression operator expression ;
-operator           -> "+" | "-" | "*" | "/" ;
 ```
