@@ -5,6 +5,7 @@ expression         -> literal
                     
 literal            -> NUMBER ;
 grouping           -> "(" expression ")"
+primary            -> literal | grouping
 binary             -> expression operator expression ;
 operator           -> "+" | "-" | "*" | "/" ;
 ```
