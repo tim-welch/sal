@@ -14,6 +14,10 @@ pub fn evaluate(expr: &Expr) -> Result<Value, Box<dyn Error>> {
             let value = f64::from_str(value)?;
             Ok(Value::Number(value))
         }
+        Expr::Grouping { expr } => {
+            let value = evaluate(expr)?;
+            Ok(value)
+        }
         Expr::Binary {
             left,
             operator,

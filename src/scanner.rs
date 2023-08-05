@@ -11,6 +11,10 @@ pub enum Token {
     // Literals
     NumericLiteral { value: String },
 
+    // Punctuation
+    OpenParen,
+    CloseParen,
+
     // Operators
     Plus,
     Minus,
@@ -92,6 +96,18 @@ fn next_token<'a>(lex: &'a Lexer) -> Result<(Lexer<'a>, Option<Token>), Box<dyn 
                 source: &(lex.source[1..]),
             },
             Some(Token::Slash),
+        )),
+        '(' => Ok((
+            Lexer {
+                source: &(lex.source[1..]),
+            },
+            Some(Token::OpenParen),
+        )),
+        ')' => Ok((
+            Lexer {
+                source: &(lex.source[1..]),
+            },
+            Some(Token::CloseParen),
         )),
         _ => {
             if let Some(lex) = eat_whitespace(lex) {
@@ -311,6 +327,28 @@ mod tests {
             Test {
                 source: "/",
                 expected: vec![Token::Slash],
+            },
+        ];
+        for test in tests {
+            let tokens = tokenize(test.source).unwrap();
+            assert_eq!(tokens, test.expected);
+        }
+    }
+
+    #[test]
+    fn tokenize_punctuation() {
+        struct Test {
+            source: &'static str,
+            expected: Vec<Token>,
+        }
+        let tests = [
+            Test {
+                source: "(",
+                expected: vec![Token::OpenParen],
+            },
+            Test {
+                source: ")",
+                expected: vec![Token::CloseParen],
             },
         ];
         for test in tests {

@@ -10,6 +10,9 @@ pub enum Expr {
         operator: Token,
         right: Box<Expr>,
     },
+    Grouping {
+        expr: Box<Expr>,
+    },
     NumericLiteral {
         value: String,
     },
@@ -24,7 +27,7 @@ type ExprResult = Result<ExprInfo, Box<dyn Error>>;
 type Tokens = Vec<Token>;
 
 pub fn parse(tokens: &Tokens) -> Result<Expr, Box<dyn Error>> {
-    let root = term(tokens, 0);
+    let root = expression(tokens, 0);
     match root {
         Ok(root) => Ok(root.expr),
         Err(err) => Err(err),
@@ -33,6 +36,10 @@ pub fn parse(tokens: &Tokens) -> Result<Expr, Box<dyn Error>> {
 
 fn is_eos(tokens: &Tokens, current: usize) -> bool {
     tokens.len() <= current || tokens[current] == Token::EOF
+}
+
+fn expression(tokens: &Tokens, current: usize) -> ExprResult {
+    term(tokens, current)
 }
 
 fn term(tokens: &Tokens, current: usize) -> ExprResult {
@@ -64,7 +71,7 @@ fn term(tokens: &Tokens, current: usize) -> ExprResult {
 }
 
 fn factor(tokens: &Tokens, current: usize) -> ExprResult {
-    let lit = literal(tokens, current)?;
+    let lit = primary(tokens, current)?;
     let mut expr = lit.expr;
     let mut used: usize = lit.used;
     while !is_eos(tokens, current + used) {
@@ -72,7 +79,7 @@ fn factor(tokens: &Tokens, current: usize) -> ExprResult {
             Token::Astrix | Token::Slash => {
                 let operator = tokens[current + used].clone();
                 used += 1;
-                let lit = literal(tokens, current + used)?;
+                let lit = primary(tokens, current + used)?;
                 let right = lit.expr;
                 used += lit.used;
                 expr = Expr::Binary {
@@ -90,18 +97,45 @@ fn factor(tokens: &Tokens, current: usize) -> ExprResult {
     Ok(ExprInfo { expr, used })
 }
 
-fn literal(tokens: &Tokens, current: usize) -> ExprResult {
+fn primary(tokens: &Tokens, current: usize) -> ExprResult {
     if is_eos(tokens, current) {
         return Err("Unexpected end of file".into());
     }
-    match &tokens[current] {
+
+    match tokens[current] {
+        Token::NumericLiteral { .. } => literal(&tokens[current]),
+        Token::OpenParen => {
+            let mut used: usize = 1;
+            let expr = expression(tokens, current + used)?;
+            used += expr.used;
+            let expr = expr.expr;
+            match tokens[current + used] {
+                Token::CloseParen => Ok(ExprInfo {
+                    expr: Expr::Grouping {
+                        expr: Box::new(expr),
+                    },
+                    used: used + 1,
+                }),
+                _ => Err(format!(
+                    "Expected to find Close Parentheses, but found: {:?}",
+                    tokens[current + used]
+                )
+                .into()),
+            }
+        }
+        _ => Err(format!("Unexpected token: {:?}", tokens[current]).into()),
+    }
+}
+
+fn literal(token: &Token) -> ExprResult {
+    match token {
         Token::NumericLiteral { value } => Ok(ExprInfo {
             expr: Expr::NumericLiteral {
                 value: value.to_string(),
             },
             used: 1,
         }),
-        _ => Err(format!("Unexpected token: {:?}", tokens[current]).into()),
+        _ => Err(format!("Token not a literal: {:?}", token).into()),
     }
 }
 
