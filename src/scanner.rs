@@ -18,6 +18,10 @@ pub enum Token {
     Slash,
 }
 
+// TODO: Make Lexer an iterator and remove mutable used variable
+// TODO: Use map(?) to build vector of tokens from Lexer?
+// TODO: Don't build vector of tokens, just pass Lexer to parse?
+
 pub struct Lexer<'a> {
     source: &'a [char],
 }
