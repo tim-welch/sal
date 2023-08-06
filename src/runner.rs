@@ -91,7 +91,7 @@ mod tests {
 
     #[test]
     fn named_values() {
-        let source = "let subtotal = 1 + 2 + 3 + 4;\nlet tax = 0.0425;let total = subtotal * (1 + tax)\ntotal";
+        let source = "def subtotal = 1 + 2 + 3 + 4;\ndef tax = 0.0425;def total = subtotal * (1 + tax);\ntotal";
         let expected = 10.425;
         let value = evaluate_line(source).unwrap();
         assert_eq!(value, Value::Number(expected));

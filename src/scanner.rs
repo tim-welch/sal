@@ -14,6 +14,8 @@ pub enum Token {
     // Punctuation
     OpenParen,
     CloseParen,
+    Equal,
+    SemiColon,
 
     // Operators
     Plus,
@@ -26,7 +28,7 @@ pub enum Token {
     Def,
 }
 
-const PUNCTUATION: &[char] = &['(', ')'];
+const PUNCTUATION: &[char] = &['(', ')', '=', ';'];
 
 // TODO: Make Lexer an iterator and remove mutable used variable
 // TODO: Use map(?) to build vector of tokens from Lexer?
@@ -143,6 +145,18 @@ fn next_token<'a>(lex: &'a Lexer) -> Result<(Lexer<'a>, Option<Token>), Box<dyn 
                 source: &(lex.source[1..]),
             },
             Some(Token::CloseParen),
+        )),
+        '=' => Ok((
+            Lexer {
+                source: &(lex.source[1..]),
+            },
+            Some(Token::Equal),
+        )),
+        ';' => Ok((
+            Lexer {
+                source: &(lex.source[1..]),
+            },
+            Some(Token::SemiColon),
         )),
         _ => {
             if let Some(lex) = eat_whitespace(lex) {
@@ -385,6 +399,14 @@ mod tests {
                 source: ")",
                 expected: vec![Token::CloseParen],
             },
+            Test {
+                source: "=",
+                expected: vec![Token::Equal],
+            },
+            Test {
+                source: ";",
+                expected: vec![Token::SemiColon],
+            },
         ];
         for test in tests {
             let tokens = tokenize(test.source).unwrap();
@@ -451,6 +473,104 @@ mod tests {
             source: "def x",
             expected: vec![Token::Def, Token::Identifier { value: "x".into() }],
         }];
+        for test in tests {
+            let tokens = tokenize(test.source).unwrap();
+            assert_eq!(tokens, test.expected);
+        }
+    }
+
+    #[test]
+    fn punctuation_terminate_identifier() {
+        struct Test {
+            source: &'static str,
+            expected: Vec<Token>,
+        }
+        let tests = [
+            Test {
+                source: "abc_d12';",
+                expected: vec![
+                    Token::Identifier {
+                        value: "abc_d12'".into(),
+                    },
+                    Token::SemiColon,
+                ],
+            },
+            Test {
+                source: "abc_d12'(",
+                expected: vec![
+                    Token::Identifier {
+                        value: "abc_d12'".into(),
+                    },
+                    Token::OpenParen,
+                ],
+            },
+            Test {
+                source: "abc_d12')",
+                expected: vec![
+                    Token::Identifier {
+                        value: "abc_d12'".into(),
+                    },
+                    Token::CloseParen,
+                ],
+            },
+            Test {
+                source: "abc_d12'=",
+                expected: vec![
+                    Token::Identifier {
+                        value: "abc_d12'".into(),
+                    },
+                    Token::Equal,
+                ],
+            },
+        ];
+        for test in tests {
+            let tokens = tokenize(test.source).unwrap();
+            assert_eq!(tokens, test.expected);
+        }
+    }
+
+    #[test]
+    fn tokenizes_named_value_statement() {
+        struct Test {
+            source: &'static str,
+            expected: Vec<Token>,
+        }
+        let tests = [
+            Test {
+                source: "def subtotal = 1 + 2 + 3 + 4;\ndef tax = 0.0425;def total = subtotal * (1 + tax);\ntotal",
+                expected: vec![
+                    Token::Def,
+                    Token::Identifier{value: "subtotal".into()},
+                    Token::Equal,
+                    Token::NumericLiteral { value: "1".into() },
+                    Token::Plus,
+                    Token::NumericLiteral { value: "2".into() },
+                    Token::Plus,
+                    Token::NumericLiteral { value: "3".into() },
+                    Token::Plus,
+                    Token::NumericLiteral { value: "4".into() },
+                    Token::SemiColon,
+                    Token::Def,
+                    Token::Identifier{value: "tax".into()},
+                    Token::Equal,
+                    Token::NumericLiteral { value: "0.0425".into() },
+                    Token::SemiColon,
+                    Token::Def,
+                    Token::Identifier{value: "total".into()},
+                    Token::Equal,
+                    Token::Identifier{value: "subtotal".into()},
+                    Token::Astrix,
+                    Token::OpenParen,
+                    Token::NumericLiteral { value: "1".into() },
+                    Token::Plus,
+                    Token::Identifier{value: "tax".into()},
+                    Token::CloseParen,
+                    Token::SemiColon,
+                    Token::Identifier{value: "total".into()},
+
+                ],
+            },
+        ];
         for test in tests {
             let tokens = tokenize(test.source).unwrap();
             assert_eq!(tokens, test.expected);
