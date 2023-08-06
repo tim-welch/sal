@@ -20,7 +20,12 @@ pub enum Token {
     Minus,
     Astrix,
     Slash,
+
+    // Identifiers
+    Identifier { value: String },
 }
+
+const PUNCTUATION: &[char] = &['(', ')'];
 
 // TODO: Make Lexer an iterator and remove mutable used variable
 // TODO: Use map(?) to build vector of tokens from Lexer?
@@ -32,6 +37,14 @@ pub struct Lexer<'a> {
 
 fn is_end(lex: &Lexer, used: usize) -> bool {
     lex.source.len() <= used
+}
+
+fn is_whitespace(lex: &Lexer, current: usize) -> bool {
+    lex.source[current].is_whitespace()
+}
+
+fn is_punctuation(lex: &Lexer, current: usize) -> bool {
+    PUNCTUATION.contains(&lex.source[current])
 }
 
 fn number<'a>(lex: &'a Lexer) -> (Lexer<'a>, Option<Token>) {
@@ -56,9 +69,25 @@ fn number<'a>(lex: &'a Lexer) -> (Lexer<'a>, Option<Token>) {
     )
 }
 
+fn identifier<'a>(lex: &'a Lexer) -> (Lexer<'a>, Option<Token>) {
+    let mut used = 0;
+    while !is_end(lex, used) && !is_whitespace(lex, used) && !is_punctuation(lex, used) {
+        used += 1;
+    }
+
+    (
+        Lexer {
+            source: &(lex.source[used..]),
+        },
+        Some(Token::Identifier {
+            value: lex.source[..used].iter().collect(),
+        }),
+    )
+}
+
 fn eat_whitespace<'a>(lex: &'a Lexer) -> Option<Lexer<'a>> {
     let mut used: usize = 0;
-    while !is_end(lex, used) && lex.source[used].is_whitespace() {
+    while !is_end(lex, used) && is_whitespace(lex, used) {
         used += 1;
     }
     if used > 0 {
@@ -113,7 +142,7 @@ fn next_token<'a>(lex: &'a Lexer) -> Result<(Lexer<'a>, Option<Token>), Box<dyn 
             if let Some(lex) = eat_whitespace(lex) {
                 Ok((lex, None))
             } else {
-                Err("Unknown token".into())
+                Ok(identifier(lex))
             }
         }
     }
@@ -349,6 +378,55 @@ mod tests {
             Test {
                 source: ")",
                 expected: vec![Token::CloseParen],
+            },
+        ];
+        for test in tests {
+            let tokens = tokenize(test.source).unwrap();
+            assert_eq!(tokens, test.expected);
+        }
+    }
+
+    #[test]
+    fn tokenize_identifiers() {
+        struct Test {
+            source: &'static str,
+            expected: Vec<Token>,
+        }
+        let tests = [
+            Test {
+                source: "x",
+                expected: vec![Token::Identifier { value: "x".into() }],
+            },
+            Test {
+                source: "abc123",
+                expected: vec![Token::Identifier {
+                    value: "abc123".into(),
+                }],
+            },
+            Test {
+                source: "abc123)",
+                expected: vec![
+                    Token::Identifier {
+                        value: "abc123".into(),
+                    },
+                    Token::CloseParen,
+                ],
+            },
+            Test {
+                source: "abc123 ",
+                expected: vec![Token::Identifier {
+                    value: "abc123".into(),
+                }],
+            },
+            Test {
+                source: "(a_b+c-1'2!3)",
+                expected: vec![
+                    Token::OpenParen,
+                    Token::Identifier {
+                        value: "a_b+c-1'2!3".into(),
+                    },
+                    Token::CloseParen,
+                ],
             },
         ];
         for test in tests {

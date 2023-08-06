@@ -9,9 +9,10 @@ factor             -> primary ( ("*" | "/") primary )* ;
 primary            -> literal | grouping | identifier ;
 grouping           -> "(" expression ")" ;
 
-identifier         -> (not digit & not punctuation & not whitespace)(not punctuation and not whitespace)* ;
+identifier         -> (not digit & not punctuation & not operator & not whitespace)(not punctuation and not whitespace)* ;
 literal            -> NUMBER ;
 digit              -> "0".."9" ;
 punctuation        -> "(" | ")" ;
+operator           -> "+" | "-" | "*" | "/" ;
 whitespace         -> any unicode character classified as whitespace
 ```
