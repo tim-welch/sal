@@ -23,6 +23,7 @@ pub enum Token {
 
     // Identifiers
     Identifier { value: String },
+    Def,
 }
 
 const PUNCTUATION: &[char] = &['(', ')'];
@@ -75,14 +76,19 @@ fn identifier<'a>(lex: &'a Lexer) -> (Lexer<'a>, Option<Token>) {
         used += 1;
     }
 
-    (
-        Lexer {
-            source: &(lex.source[used..]),
-        },
-        Some(Token::Identifier {
-            value: lex.source[..used].iter().collect(),
-        }),
-    )
+    let ident = lex.source[..used].iter().collect();
+    let remaining = &(lex.source[used..]);
+    keyword(ident, remaining)
+}
+
+fn keyword(ident: String, remaining: &[char]) -> (Lexer<'_>, Option<Token>) {
+    match ident.as_str() {
+        "def" => (Lexer { source: remaining }, Some(Token::Def)),
+        _ => (
+            Lexer { source: remaining },
+            Some(Token::Identifier { value: ident }),
+        ),
+    }
 }
 
 fn eat_whitespace<'a>(lex: &'a Lexer) -> Option<Lexer<'a>> {
@@ -429,6 +435,22 @@ mod tests {
                 ],
             },
         ];
+        for test in tests {
+            let tokens = tokenize(test.source).unwrap();
+            assert_eq!(tokens, test.expected);
+        }
+    }
+
+    #[test]
+    fn tokenize_keywords() {
+        struct Test {
+            source: &'static str,
+            expected: Vec<Token>,
+        }
+        let tests = [Test {
+            source: "def x",
+            expected: vec![Token::Def, Token::Identifier { value: "x".into() }],
+        }];
         for test in tests {
             let tokens = tokenize(test.source).unwrap();
             assert_eq!(tokens, test.expected);
