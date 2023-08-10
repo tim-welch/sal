@@ -4,6 +4,11 @@ use std::error::Error;
 // TODO: Use recursion to remove mutability
 
 #[derive(Debug, PartialEq, Eq)]
+pub enum Stmt {
+    NamedValue { identifier: Token, expr: Box<Expr> },
+}
+
+#[derive(Debug, PartialEq, Eq)]
 pub enum Expr {
     Binary {
         left: Box<Expr>,
@@ -23,6 +28,11 @@ struct ExprInfo {
     used: usize,
 }
 
+struct Program {
+    statements: Vec<Stmt>,
+    expr: Expr,
+}
+
 type ExprResult = Result<ExprInfo, Box<dyn Error>>;
 type Tokens = Vec<Token>;
 
@@ -30,11 +40,81 @@ fn is_eos(tokens: &Tokens, current: usize) -> bool {
     tokens.len() <= current || tokens[current] == Token::EOF
 }
 
-pub fn parse(tokens: &Tokens) -> Result<Expr, Box<dyn Error>> {
-    let root = expression(tokens, 0);
+pub fn parse(tokens: &Tokens) -> Result<Program, Box<dyn Error>> {
+    let mut statements: Vec<Stmt> = vec![];
+    let mut used: usize = 0;
+    while !is_eos(tokens, used) {
+        let statement_info = statement(tokens, used)?;
+        if let Some(statement_info) = statement_info {
+            statements.push(statement_info.0);
+            used += statement_info.1;
+        } else {
+            break;
+        }
+    }
+
+    let root = expression(tokens, used);
     match root {
-        Ok(root) => Ok(root.expr),
+        Ok(root) => Ok(Program {
+            statements,
+            expr: root.expr,
+        }),
         Err(err) => Err(err),
+    }
+}
+
+fn statement(tokens: &Tokens, current: usize) -> Result<Option<(Stmt, usize)>, Box<dyn Error>> {
+    match tokens[current] {
+        Token::Def => named_value_definition(tokens, current),
+        _ => Ok(None),
+    }
+}
+
+fn named_value_definition(
+    tokens: &Tokens,
+    current: usize,
+) -> Result<Option<(Stmt, usize)>, Box<dyn Error>> {
+    let mut used: usize = 0;
+    match &tokens[current + used] {
+        Token::Def => {
+            used += 1;
+            match &tokens[current + used] {
+                Token::Identifier { value: _ } => {
+                    let identifier = &tokens[current + used];
+                    used += 1;
+                    match &tokens[current + used] {
+                        Token::Equal => {
+                            used += 1;
+                            let expr = expression(tokens, current + used)?;
+                            used += expr.used;
+                            match &tokens[current + used] {
+                                Token::SemiColon => Ok(Some((
+                                    Stmt::NamedValue {
+                                        identifier: identifier.clone(),
+                                        expr: Box::new(expr.expr),
+                                    },
+                                    used + 1,
+                                ))),
+                                _ => Err(format!(
+                                    "Expected a ; but found: {:?}",
+                                    tokens[current + used]
+                                )
+                                .into()),
+                            }
+                        }
+                        _ => Err(
+                            format!("Expected an = but found: {:?}", tokens[current + used]).into(),
+                        ),
+                    }
+                }
+                _ => Err(format!(
+                    "Expected an identifier but found: {:?}",
+                    tokens[current + used]
+                )
+                .into()),
+            }
+        }
+        _ => panic!("Unreachable"),
     }
 }
 
@@ -431,5 +511,21 @@ mod tests {
         let tokens = tokenize("10 + 11").unwrap();
         let ast = parse(&tokens).unwrap();
         println!("{:?}", ast);
+    }
+
+    #[test]
+    fn named_value_definitions() {
+        let tokens: Vec<Token> = vec![
+            Token::Def,
+            Token::Identifier {
+                value: "subtotal".into(),
+            },
+            Token::Equal,
+            Token::NumericLiteral { value: "1".into() },
+            Token::SemiColon,
+            Token::NumericLiteral { value: "10".into() },
+        ];
+        let ast = parse(&tokens).unwrap();
+        assert_eq!(ast, Expr::NumericLiteral { value: "10".into() },);
     }
 }

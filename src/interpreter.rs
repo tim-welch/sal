@@ -1,4 +1,4 @@
-use crate::ast::Expr;
+use crate::ast::{Expr, Program};
 use crate::scanner::Token;
 use std::error::Error;
 use std::str::FromStr;
@@ -8,7 +8,8 @@ pub enum Value {
     Number(f64),
 }
 
-pub fn evaluate(expr: &Expr) -> Result<Value, Box<dyn Error>> {
+pub fn evaluate(program: &Program) -> Result<Value, Box<dyn Error>> {
+    let expr = program.expr;
     match expr {
         Expr::NumericLiteral { value } => {
             let value = f64::from_str(value)?;
